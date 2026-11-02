@@ -206,7 +206,32 @@ livre_maior = df["free sulfur dioxide"] > df["total sulfur dioxide"]
 print("Linhas com free maior que total:", livre_maior.sum())
 
 # =========================================================
-# 9. Salva o resultado (sempre no final)
+# 9. Duplicatas
+# =========================================================
+# Parte 1: remove linhas com vazio que têm uma gêmea completa
+for coluna in df.columns:
+    outras = df.columns.drop(coluna)
+
+    # Ordena para que, entre gêmeas, as completas venham antes das vazias
+    df = df.sort_values(coluna, na_position="last")
+
+    # Marca as linhas iguais (nas outras colunas) a uma linha que apareceu antes
+    repete_anterior = df.duplicated(subset=outras, keep="first")
+
+    # Remove só as que estão vazias nessa coluna
+    remover = df[coluna].isna() & repete_anterior
+    print(coluna, "- linhas com vazio removidas por ter gêmea:", remover.sum())
+    df = df[~remover]
+
+df = df.sort_index()   # volta à ordem original
+
+# Parte 2: remove linhas exatamente iguais, mantendo uma cópia
+antes = len(df)
+df = df.drop_duplicates()
+print("Linhas exatamente iguais removidas:", antes - len(df))
+
+# =========================================================
+# 10. Salva o resultado (sempre no final)
 # =========================================================
 os.makedirs("data/processed", exist_ok=True)
 df.to_csv("data/processed/winequality_clean.csv", index=False)
