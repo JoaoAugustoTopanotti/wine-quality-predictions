@@ -153,7 +153,60 @@ print(df["density"].describe())
 print("Valores vazios em density:", df["density"].isna().sum())
 
 # =========================================================
-# 7. Salva o resultado (sempre no final)
+# 7. Coluna "type"
+# =========================================================
+def corrigir_type(texto):
+    # Caso 1: o valor está vazio
+    if pd.isna(texto):
+        return np.nan
+
+    # Por segurança: remove espaços e deixa tudo em minúsculas
+    texto = texto.strip().lower()
+
+    # Caso 2: valor normal
+    if texto in ("red", "white"):
+        return texto
+
+    # Caso 3: palavra repetida ("redredred...")
+    # Se apagar todos os "red" e não sobrar nada, era só "red" repetido
+    if texto.replace("red", "") == "":
+        return "red"
+    if texto.replace("white", "") == "":
+        return "white"
+
+    # Caso 4: qualquer outro texto, não dá para saber
+    return np.nan
+
+
+df["type"] = df["type"].apply(corrigir_type)
+
+print(df["type"].value_counts(dropna=False))
+
+# =========================================================
+# 8. Valores isolados fora da faixa plausível
+# =========================================================
+# Limites com folga em relação às faixas do artigo (Cortez et al., 2009)
+limites = {
+    "fixed acidity":        (3, 20),
+    "citric acid":          (0, 2),
+    "residual sugar":       (0.5, 70),
+    "free sulfur dioxide":  (1, 300),
+    "total sulfur dioxide": (5, 500),
+    "pH":                   (2.5, 4.5),
+    "sulphates":            (0.1, 2.5),
+}
+
+for coluna, (minimo, maximo) in limites.items():
+    fora = (df[coluna] < minimo) | (df[coluna] > maximo)
+    print(coluna, "- valores fora da faixa:", fora.sum())
+    df.loc[fora, coluna] = np.nan
+
+# Conferência: o SO2 livre nunca pode ser maior que o total
+livre_maior = df["free sulfur dioxide"] > df["total sulfur dioxide"]
+print("Linhas com free maior que total:", livre_maior.sum())
+
+# =========================================================
+# 9. Salva o resultado (sempre no final)
 # =========================================================
 os.makedirs("data/processed", exist_ok=True)
 df.to_csv("data/processed/winequality_clean.csv", index=False)
