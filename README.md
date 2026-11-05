@@ -17,15 +17,16 @@ wine-quality-predictions/
 │   ├── processed/                    # saída do processing.py (ignorada pelo git)
 │   └── processing.py                 # script de limpeza dos dados
 └── notebooks/
-    └── exploration.ipynb             # investigação dos problemas do dataset
+    ├── raw_data_investigation.ipynb  # investigação dos problemas do dataset bruto
+    └── exploratory_analisys.ipynb    # análise exploratória do dataset limpo
 ```
 
 ## Como executar
 
-Requisitos: Python 3 com `pandas` e `numpy` (e `jupyter` para o notebook).
+Requisitos: Python 3 com `pandas`, `numpy`, `matplotlib`, `seaborn` (seaborn 0.13 ou superior) e `jupyter`.
 
 ```bash
-pip install pandas numpy jupyter
+pip install pandas numpy matplotlib "seaborn>=0.13" jupyter
 ```
 
 Rode o script **a partir da raiz do repositório** (os caminhos são relativos a ela):
@@ -34,7 +35,7 @@ Rode o script **a partir da raiz do repositório** (os caminhos são relativos a
 python data/processing.py
 ```
 
-Isso gera `data/processed/winequality_clean.csv`. O notebook lê esse arquivo, então rode o script antes de abri-lo.
+Isso gera `data/processed/winequality_clean.csv`. O notebook `exploratory_analisys.ipynb` lê esse arquivo, então rode o script antes de abri-lo.
 
 ## Dataset
 
@@ -77,3 +78,19 @@ Distribuição do target após a limpeza:
 | quality | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 |---|---|---|---|---|---|---|---|
 | vinhos | 30 | 206 | 1.752 | 2.320 | 856 | 148 | 5 |
+
+## Análise exploratória (`notebooks/exploratory_analisys.ipynb`)
+
+O notebook explora o dataset limpo em seções: visão geral, distribuição do target,
+histogramas, outliers (boxplots), relação das variáveis com a `quality`, scatter plots e
+matriz de correlação. Os tintos e brancos são analisados separadamente em todas as etapas.
+
+Principais conclusões:
+
+- **`alcohol` é a variável mais relacionada à qualidade** (correlação ≈ 0,47, igual nos dois tipos). Nenhuma outra passa de 0,40, então um R² modesto é esperado na regressão.
+- **As variáveis afetam a nota de forma diferente em cada tipo.** `volatile acidity`, `sulphates` e `citric acid` importam mais nos tintos; `chlorides` e `density`, nos brancos. Por isso o `type` entra como variável do modelo.
+- **O target é desbalanceado:** as notas 5 e 6 somam cerca de 77% dos vinhos. O split treino/teste será estratificado pela `quality`.
+- **Multicolinearidade** em três pares: `alcohol` × `density`, `residual sugar` × `density` e `free` × `total sulfur dioxide`.
+- **Os outliers são valores reais** e serão mantidos.
+
+As decisões completas de pré-processamento e modelagem estão na seção 9 do notebook.
