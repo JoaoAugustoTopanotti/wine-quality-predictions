@@ -16,17 +16,20 @@ wine-quality-predictions/
 │   │   └── group_3_winequality.csv   # dataset original fornecido pelo professor (grupo 3)
 │   ├── processed/                    # saída do processing.py (ignorada pelo git)
 │   └── processing.py                 # script de limpeza dos dados
+├── src/
+│   └── preparacao.py                 # split treino/teste e pipeline de pré-processamento
 └── notebooks/
     ├── raw_data_investigation.ipynb  # investigação dos problemas do dataset bruto
-    └── exploratory_analisys.ipynb    # análise exploratória do dataset limpo
+    ├── exploratory_analisys.ipynb    # análise exploratória do dataset limpo
+    └── regression.ipynb              # Parte 1: modelos de regressão
 ```
 
 ## Como executar
 
-Requisitos: Python 3 com `pandas`, `numpy`, `matplotlib`, `seaborn` (seaborn 0.13 ou superior) e `jupyter`.
+Requisitos: Python 3 com `pandas`, `numpy`, `matplotlib`, `seaborn` (seaborn 0.13 ou superior), `scikit-learn` e `jupyter`.
 
 ```bash
-pip install pandas numpy matplotlib "seaborn>=0.13" jupyter
+pip install pandas numpy matplotlib "seaborn>=0.13" scikit-learn jupyter
 ```
 
 Rode o script **a partir da raiz do repositório** (os caminhos são relativos a ela):
@@ -35,7 +38,7 @@ Rode o script **a partir da raiz do repositório** (os caminhos são relativos a
 python data/processing.py
 ```
 
-Isso gera `data/processed/winequality_clean.csv`. O notebook `exploratory_analisys.ipynb` lê esse arquivo, então rode o script antes de abri-lo.
+Isso gera `data/processed/winequality_clean.csv`. Os notebooks leem esse arquivo, então rode o script antes de abri-los.
 
 ## Dataset
 
@@ -94,3 +97,27 @@ Principais conclusões:
 - **Os outliers são valores reais** e serão mantidos.
 
 As decisões completas de pré-processamento e modelagem estão na seção 9 do notebook.
+
+## Regressão (`notebooks/regression.ipynb`)
+
+Parte 1: prever a `quality` como valor contínuo.
+
+**Preparação** (`src/preparacao.py`, compartilhado com a Parte 2): split 80/20 estratificado pela `quality` e um `Pipeline` do scikit-learn que preenche os vazios com a mediana, codifica o `type` como 0/1 e padroniza as variáveis. Como tudo fica dentro do pipeline, essas etapas são ajustadas só no treino, inclusive dentro de cada rodada da validação cruzada.
+
+**Modelos:** Ridge, Random Forest e Gradient Boosting (`HistGradientBoostingRegressor`), comparados com um baseline que chuta sempre a média. Os hiperparâmetros foram ajustados com `GridSearchCV` (validação cruzada de 5 folds, otimizando o RMSE).
+
+Resultados no conjunto de teste:
+
+| Modelo | RMSE | MAE | R² |
+|---|---|---|---|
+| Baseline (média) | 0,880 | 0,695 | 0,000 |
+| Ridge | 0,721 | 0,557 | 0,329 |
+| **Random Forest** | **0,679** | **0,521** | **0,406** |
+| Gradient Boosting | 0,684 | 0,527 | 0,397 |
+
+Principais conclusões:
+
+- **O Random Forest foi o melhor modelo**, errando a nota em cerca de meio ponto. O Gradient Boosting empatou na prática.
+- **O ajuste de hiperparâmetros trouxe pouco ganho** (menos de 0,01 de RMSE). No Ridge, o que mais ajudou foi o log nas variáveis de cauda longa.
+- **As variáveis mais importantes são `alcohol`, `volatile acidity` e `free sulfur dioxide`**, nos dois modelos e de acordo com a EDA.
+- **Os modelos erram muito nas notas extremas** (3, 4, 8 e 9), puxando as previsões para o centro. Isso motiva a Parte 2, de classificação em faixas.
