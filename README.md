@@ -21,15 +21,16 @@ wine-quality-predictions/
 └── notebooks/
     ├── raw_data_investigation.ipynb  # investigação dos problemas do dataset bruto
     ├── exploratory_analisys.ipynb    # análise exploratória do dataset limpo
-    └── regression.ipynb              # Parte 1: modelos de regressão
+    ├── regression.ipynb              # Parte 1: modelos de regressão
+    └── classification.ipynb          # Parte 2: modelos de classificação
 ```
 
 ## Como executar
 
-Requisitos: Python 3 com `pandas`, `numpy`, `matplotlib`, `seaborn` (seaborn 0.13 ou superior), `scikit-learn` e `jupyter`.
+Requisitos: Python 3 com `pandas`, `numpy`, `matplotlib`, `seaborn` (seaborn 0.13 ou superior), `scikit-learn`, `imbalanced-learn` e `jupyter`.
 
 ```bash
-pip install pandas numpy matplotlib "seaborn>=0.13" scikit-learn jupyter
+pip install pandas numpy matplotlib "seaborn>=0.13" scikit-learn imbalanced-learn jupyter
 ```
 
 Rode o script **a partir da raiz do repositório** (os caminhos são relativos a ela):
@@ -121,3 +122,37 @@ Principais conclusões:
 - **O ajuste de hiperparâmetros trouxe pouco ganho** (menos de 0,01 de RMSE). No Ridge, o que mais ajudou foi o log nas variáveis de cauda longa.
 - **As variáveis mais importantes são `alcohol`, `volatile acidity` e `free sulfur dioxide`**, nos dois modelos e de acordo com a EDA.
 - **Os modelos erram muito nas notas extremas** (3, 4, 8 e 9), puxando as previsões para o centro. Isso motiva a Parte 2, de classificação em faixas.
+
+## Classificação (`notebooks/classification.ipynb`)
+
+Parte 2: agrupar as notas em faixas de qualidade e prever a faixa. Usa o mesmo split e o mesmo pré-processamento da regressão.
+
+**Faixas:** três esquemas foram comparados. O principal é o **A**, por ser o mais informativo:
+
+| Esquema | Classes | Proporção | F1 macro (Random Forest, validação cruzada) |
+|---|---|---|---|
+| **A** | baixa (3–4) / média (5–6) / alta (7–9) | 4% / 77% / 19% | 0,55 |
+| B | ruim (≤ 5) / bom (≥ 6) | 37% / 63% | 0,75 |
+| C | comum (≤ 6) / excelente (≥ 7) | 81% / 19% | 0,73 |
+
+**Métrica principal:** F1 macro, que dá o mesmo peso a todas as classes. A acurácia engana com classes desbalanceadas: no esquema A, responder sempre "média" já acerta 77%.
+
+**Balanceamento:** `class_weight="balanced"` e SMOTE tiveram resultados equivalentes. O `class_weight` foi escolhido por ser mais simples.
+
+**Modelos:** Regressão Logística, Random Forest e Gradient Boosting (`HistGradientBoostingClassifier`), ajustados com `GridSearchCV`.
+
+Resultados no conjunto de teste (esquema A):
+
+| Modelo | F1 macro | Balanced acc. | Acurácia |
+|---|---|---|---|
+| Baseline (classe mais comum) | 0,289 | 0,333 | 0,766 |
+| Regressão Logística | 0,477 | 0,685 | 0,558 |
+| **Random Forest** | **0,603** | **0,658** | **0,749** |
+| Gradient Boosting | 0,589 | 0,634 | 0,741 |
+
+Principais conclusões:
+
+- **O Random Forest foi o melhor modelo**; o Gradient Boosting empatou na prática. A Regressão Logística encontra mais vinhos das classes raras, mas com muitos alarmes falsos.
+- **As confusões acontecem entre faixas vizinhas** e se concentram nas notas de fronteira (nota 6 prevista como "alta", nota 4 prevista como "média"). A classe baixa é a mais difícil (F1 de 0,39).
+- **As variáveis decisivas são `alcohol`, `free sulfur dioxide` e `volatile acidity`**, as mesmas da regressão.
+- Com o balanceamento, o modelo identifica 71% dos vinhos de qualidade alta e cerca de metade dos de qualidade baixa, algo que a regressão não conseguia.
