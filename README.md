@@ -22,7 +22,8 @@ wine-quality-predictions/
     ├── raw_data_investigation.ipynb  # investigação dos problemas do dataset bruto
     ├── exploratory_analisys.ipynb    # análise exploratória do dataset limpo
     ├── regression.ipynb              # Parte 1: modelos de regressão
-    └── classification.ipynb          # Parte 2: modelos de classificação
+    ├── classification.ipynb          # Parte 2: modelos de classificação
+    └── demonstracao.ipynb            # testes dos modelos finais com vinhos novos
 ```
 
 ## Como executar
@@ -156,3 +157,13 @@ Principais conclusões:
 - **As confusões acontecem entre faixas vizinhas** e se concentram nas notas de fronteira (nota 6 prevista como "alta", nota 4 prevista como "média"). A classe baixa é a mais difícil (F1 de 0,39).
 - **As variáveis decisivas são `alcohol`, `free sulfur dioxide` e `volatile acidity`**, as mesmas da regressão.
 - Com o balanceamento, o modelo identifica 71% dos vinhos de qualidade alta e cerca de metade dos de qualidade baixa, algo que a regressão não conseguia.
+
+## Demonstração (`notebooks/demonstracao.ipynb`)
+
+Um "laboratório" para usar os modelos finais (Random Forest de regressão e de classificação). Eles são treinados de novo com os melhores hiperparâmetros das Partes 1 e 2 e saem idênticos aos originais (mesmas métricas no teste). O notebook:
+
+- **classifica qualquer vinho** a partir das 12 variáveis, com a nota prevista, a faixa e a probabilidade de cada faixa (basta editar os valores na seção 4.2);
+- **compara previsão e realidade** em um vinho sorteado de cada nota do teste;
+- **simula o efeito de cada variável** ("e se?"): partindo de um vinho típico, varia o `alcohol`, a `volatile acidity` e o `free sulfur dioxide`, um de cada vez.
+
+As simulações mostram o que o modelo aprendeu (associações), não como fazer um vinho melhor: mudar uma variável sozinha pode gerar combinações que não existem na prática.
